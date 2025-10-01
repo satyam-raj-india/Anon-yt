@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anon YT — Multi Feature</title>
+<style>
+  body {
+    margin:0;
+    background:#000;
+    color:#fff;
+    font-family:sans-serif;
+    overflow:hidden;
+  }
+  .player-container {
+    position:relative;
+    width:100%;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#000;
+  }
+  video {
+    width:98%;
+    height:96%;
+    object-fit:contain;
+    background:#000;
+    border-radius:10px;
+    border:3px solid red;  /* 🔴 red border */
+  }
+  .controls {
+    position:absolute;
+    left:10px;
+    top:50%;
+    transform:translateY(-50%);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .btn {
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,0.15);
+    color:#fff;
+    font-weight:bold;
+    font-size:14px;
+    cursor:pointer;
+    transition:background 0.3s, opacity 0.3s;
+    opacity:0.6;
+  }
+  .btn:hover { background:rgba(255,255,255,0.3); opacity:1; }
+  footer {
+    position:absolute;
+    bottom:8px;
+    width:100%;
+    text-align:center;
+    font-size:14px;
+    color:#aaa;
+  }
+  .title {
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    font-weight:bold;
+    color:#fff;
+    background:rgba(0,0,0,0.4);
+    padding:4px 12px;
+    border-radius:6px;
+  }
+  /* Guide Overlay */
+  .guide {
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.8);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    padding:20px;
+    z-index:10;
+  }
+  .guide h2 {
+    margin-bottom:15px;
+    font-size:22px;
+    color:#ff4444;
+  }
+  .guide p { margin:8px 0; font-size:15px; opacity:0.9; }
+  .guide span {
+    margin-top:20px;
+    font-size:14px;
+    opacity:0.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="player-container">
+  <video id="video" playsinline></video>
+
+  <div class="controls">
+    <button id="asBtn" class="btn" title="Auto-scroll">AS</button>
+    <button id="muteBtn" class="btn" title="Mute">M</button>
+    <button id="playBtn" class="btn" title="Play/Pause">P</button>
+    <button id="nextBtn" class="btn" title="Next">↓</button>
+    <button id="prevBtn" class="btn" title="Prev">↑</button>
+  </div>
+
+  <div class="title" id="title">Anon YT</div>
+  <footer>AnON_Multi_Feature_App</footer>
+
+  <!-- Guide -->
+  <div class="guide" id="guide">
+    <h2>Anon YT Controls</h2>
+    <p>▶ Tap anywhere to start first video</p>
+    <p>🔊 M — Mute/Unmute</p>
+    <p>⏯ P — Play / Pause</p>
+    <p>🔄 AS — Auto-scroll after video ends</p>
+    <p>⬇ Swipe Down / ↓ Key — Next Video</p>
+    <p>⬆ Swipe Up / ↑ Key — Previous Video</p>
+    <span>(Tap to begin)</span>
+  </div>
+</div>
+
+<script>
+const BASE_PATH = "./";   // adjust if videos in another folder
+const PREFIX = "video";
+const EXT = ".mp4";
+const TOTAL = 250;
+
+let curIndex = 0;
+let autoScroll = false;
+let muted = false;
+
+const videoEl = document.getElementById("video");
+const asBtn = document.getElementById("asBtn");
+const muteBtn = document.getElementById("muteBtn");
+const playBtn = document.getElementById("playBtn");
+const nextBtn = document.getElementById("nextBtn");
+const prevBtn = document.getElementById("prevBtn");
+const titleEl = document.getElementById("title");
+const guideEl = document.getElementById("guide");
+
+function loadVideo(n){
+  if(n < 1 || n > TOTAL) return;
+  curIndex = n;
+  const src = `${BASE_PATH}${PREFIX}${n}${EXT}`;
+  videoEl.src = src;
+  videoEl.load();
+  titleEl.textContent = `Playing: video${n}`;
+}
+
+function next(){
+  if(curIndex < TOTAL){
+    loadVideo(curIndex+1);
+    videoEl.play().catch(()=>{});
+  } else {
+    titleEl.textContent = "End of Playlist";
+  }
+}
+function prev(){
+  if(curIndex > 1){
+    loadVideo(curIndex-1);
+    videoEl.play().catch(()=>{});
+  }
+}
+
+// buttons
+asBtn.onclick = ()=>{autoScroll = !autoScroll; asBtn.style.opacity = autoScroll?1:0.4;}
+muteBtn.onclick = ()=>{muted = !muted; videoEl.muted = muted; muteBtn.style.opacity = muted?1:0.4;}
+playBtn.onclick = ()=>{ if(videoEl.paused) videoEl.play(); else videoEl.pause(); }
+nextBtn.onclick = ()=> next();
+prevBtn.onclick = ()=> prev();
+
+// autoplay next
+videoEl.addEventListener("ended", ()=>{ if(autoScroll) next(); });
+
+// keyboard support
+window.addEventListener("keydown", e=>{
+  if(e.key==='a') asBtn.click();
+  if(e.key==='m') muteBtn.click();
+  if(e.key==='p') playBtn.click();
+  if(e.key==='ArrowDown') next();
+  if(e.key==='ArrowUp') prev();
+});
+
+// swipe scroll
+let startY = 0;
+videoEl.addEventListener("touchstart", e=>{
+  startY = e.touches[0].clientY;
+},{passive:true});
+videoEl.addEventListener("touchend", e=>{
+  let endY = e.changedTouches[0].clientY;
+  let dy = endY - startY;
+  if(Math.abs(dy) > 50){
+    if(dy > 0) next();    // swipe down → next
+    else prev();          // swipe up → prev
+  }
+},{passive:true});
+
+// first start with guide
+function initFirstPlay(){
+  loadVideo(1);
+  videoEl.play().catch(()=>{}); 
+  guideEl.style.display="none";  // hide guide
+  document.removeEventListener("click", initFirstPlay);
+  document.removeEventListener("touchstart", initFirstPlay);
+}
+document.addEventListener("click", initFirstPlay);
+document.addEventListener("touchstart", initFirstPlay);
+</script>
+
+</body>
+</html>
